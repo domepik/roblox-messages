@@ -6,13 +6,13 @@
  * This script was made to make managing your private-messages on ROBLOX a lot easier.
  * 
  * Current features:
- *  - Message count
+ * 	- Message count
  *  - Message extraction
+ *  - JSON formatting
  * 
  * Future features:
- *  - Formatted message extraction (JSON, XML)
- *  - Filtering options
- *  - Clear all messages
+ *  - Filtering options.
+ *  - Clear all messages.
  * 
  * 
  * This was fully written by Dominik Penner (domepik@gmail.com)
@@ -20,8 +20,9 @@
  *
  */
 
-class Messages {
+require 'simple_html_dom.php';
 
+class Messages extends simple_html_dom {
 
 	public $cookie_file;
 
@@ -94,11 +95,11 @@ class Messages {
 	/**
 	 * Returns the raw response when the getmessages POST request is sent. For JSON formatting, consider using get_json_messages
 	 * 
-	 * @param string $cookie_file
 	 * @param int $message_count
+	 * @param string $cookie_file
 	 * @param string $response
 	 */
-	public function get_raw_messages($cookie_file = false, $message_count = false) {
+	public function get_raw_messages($message_count = false, $cookie_file = false) {
 
 		if(!$cookie_file) {
 			$cookie_file = $this->cookie_file;
@@ -130,3 +131,73 @@ class Messages {
 		}
 
 	}
+
+	/**
+	 * Format the raw message list with JSON
+	 * 
+	 * This function uses the simple_html_dom library to analyze the DOM and return what we need.
+	 * It stores all the results into arrays, then maps it into a master array which is, in the end, json_encoded.
+	 * 
+	 * @param string $raw_messages
+	 * @param string $cookie_file
+	 * @return string $formatted_messages
+	 */
+	public function get_json_messages($raw_messages = false, $cookie_file = false) {
+
+		if(!$raw_messages) {
+			/*
+			Please be efficient and store the raw messages in a variable instead of making this send another request.
+			If you have a lot of  private messages, this will most likely take longer than a few seconds - be smart.
+			*/
+			$raw_messages = $this->get_raw_messages($this->cookie_file);
+		}
+
+		if(!$cookie_file) {
+			$cookie_file = $this->cookie_file;
+		}
+
+		$simple_html_dom = $this->load(str_replace('<span></span>', '', $raw_messages));
+
+		$message_id_search = $simple_html_dom->find('div[class=sub-divider-bottom messageDivider read]');
+		$message_sender_search = $simple_html_dom->find('span[class=positionAboveLink]');
+		$message_subject_search = $simple_html_dom->find('span[class=subject notranslate]');
+		$message_content_search = $simple_html_dom->find('span[!class]');
+		$message_date_search = $simple_html_dom->find('span[class=messageDate read]');
+
+		foreach($message_id_search as $x) {
+			$messages['id'][] = $x->{'data-messageid'};
+		}
+
+		foreach($message_sender_search as $x) {
+			$messages['sender'][] = $x->innertext;
+		}
+
+		foreach($message_subject_search as $x) {
+			$messages['subject'][] = $x->innertext;
+		}
+
+
+		foreach($message_content_search as $x) {
+
+			if($x->innertext == ' ') {
+				$messages['content'][] = 'NULL';
+			}
+
+			$messages['content'][] = trim($x->innertext);
+
+		}
+
+		foreach($message_date_search as $x) {
+			$messages['date'][] = trim($x->innertext, " ");
+		}
+
+		$formatted_messages = array_map(function ($id, $sender, $subject, $content, $date) {
+			return compact('id', 'sender', 'subject', 'content', 'date');
+		}, $messages['id'], $messages['sender'], $messages['subject'], $messages['content'], $messages['date']);
+
+		return json_encode($formatted_messages);
+
+	}
+
+
+}
