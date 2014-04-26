@@ -158,7 +158,7 @@ class Messages extends simple_html_dom {
 
 		try {
 
-			$simple_html_dom = $this->load(str_replace('<span></span>', '', $raw_messages));
+			$simple_html_dom = $this->load($raw_messages);
 
 			$message_id_search = $simple_html_dom->find('div[class=sub-divider-bottom messageDivider read]');
 			$message_sender_search = $simple_html_dom->find('span[class=positionAboveLink]');
