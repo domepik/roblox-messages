@@ -6,7 +6,7 @@
  * This script was made to make managing your private-messages on ROBLOX a lot easier.
  * 
  * Current features:
- * 	- Message count
+ *  - Message count
  *  - Message extraction
  * 
  * Future features:
