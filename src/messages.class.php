@@ -86,7 +86,7 @@ class Messages extends simple_html_dom {
 		}
 
 		catch(Exception $e) {
-			die('Error: ' . $e->getMessage());
+			echo 'Error: ', $e->getMessage();
 			return false;
 		}
 
@@ -126,7 +126,7 @@ class Messages extends simple_html_dom {
 		}
 
 		catch(Exception $e) {
-			die('Error: ' . $e->getMessage());
+			echo 'Error: ', $e->getMessage();
 			return false;
 		}
 
@@ -149,53 +149,63 @@ class Messages extends simple_html_dom {
 			Please be efficient and store the raw messages in a variable instead of making this send another request.
 			If you have a lot of  private messages, this will most likely take longer than a few seconds - be smart.
 			*/
-			$raw_messages = $this->get_raw_messages($this->cookie_file);
+			$raw_messages = $this->get_raw_messages();
 		}
 
 		if(!$cookie_file) {
 			$cookie_file = $this->cookie_file;
 		}
 
-		$simple_html_dom = $this->load(str_replace('<span></span>', '', $raw_messages));
+		try {
 
-		$message_id_search = $simple_html_dom->find('div[class=sub-divider-bottom messageDivider read]');
-		$message_sender_search = $simple_html_dom->find('span[class=positionAboveLink]');
-		$message_subject_search = $simple_html_dom->find('span[class=subject notranslate]');
-		$message_content_search = $simple_html_dom->find('span[!class]');
-		$message_date_search = $simple_html_dom->find('span[class=messageDate read]');
+			$simple_html_dom = $this->load(str_replace('<span></span>', '', $raw_messages));
 
-		foreach($message_id_search as $x) {
-			$messages['id'][] = $x->{'data-messageid'};
-		}
+			$message_id_search = $simple_html_dom->find('div[class=sub-divider-bottom messageDivider read]');
+			$message_sender_search = $simple_html_dom->find('span[class=positionAboveLink]');
+			$message_subject_search = $simple_html_dom->find('span[class=subject notranslate]');
+			$message_content_search = $simple_html_dom->find('span[!class]');
+			$message_date_search = $simple_html_dom->find('span[class=messageDate read]');
 
-		foreach($message_sender_search as $x) {
-			$messages['sender'][] = $x->innertext;
-		}
-
-		foreach($message_subject_search as $x) {
-			$messages['subject'][] = $x->innertext;
-		}
-
-
-		foreach($message_content_search as $x) {
-
-			if($x->innertext == ' ') {
-				$messages['content'][] = 'NULL';
+			foreach($message_id_search as $x) {
+				$messages['id'][] = $x->{'data-messageid'};
 			}
 
-			$messages['content'][] = trim($x->innertext);
+			foreach($message_sender_search as $x) {
+				$messages['sender'][] = $x->innertext;
+			}
+
+			foreach($message_subject_search as $x) {
+				$messages['subject'][] = $x->innertext;
+			}
+
+
+			foreach($message_content_search as $x) {
+
+				if($x->innertext == ' ') {
+					$messages['content'][] = 'NULL';
+				}
+
+				$messages['content'][] = trim($x->innertext);
+
+			}
+
+			foreach($message_date_search as $x) {
+				$messages['date'][] = trim($x->innertext, " ");
+			}
+
+
+			$formatted_messages = array_map(function ($id, $sender, $subject, $content, $date) {
+				return compact('id', 'sender', 'subject', 'content', 'date');
+			}, $messages['id'], $messages['sender'], $messages['subject'], $messages['content'], $messages['date']);
+
+			return json_encode($formatted_messages);
 
 		}
 
-		foreach($message_date_search as $x) {
-			$messages['date'][] = trim($x->innertext, " ");
+		catch(Exception $e) {
+			echo 'Error: ', $e->getMessage();
+			return false;
 		}
-
-		$formatted_messages = array_map(function ($id, $sender, $subject, $content, $date) {
-			return compact('id', 'sender', 'subject', 'content', 'date');
-		}, $messages['id'], $messages['sender'], $messages['subject'], $messages['content'], $messages['date']);
-
-		return json_encode($formatted_messages);
 
 	}
 
